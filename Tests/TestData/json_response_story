@@ -1,0 +1,7 @@
+HTTP/1.1 200 OK
+Date: Wed, 25 Nov 2009 12:00:00 GMT
+Connection: close
+Server: YoMomma
+Content-Type: application/json
+
+{"as_a":"a developer","color":null,"comments":"Tasks: \na) Create a simple public API endpoint that returns the unmodified darwin header\nb) Create a jQuery plugin that loads the header from the API endpoint and dumps it into an empty div on a test page\n\nNOTE: during dev, criteria d has changed to be to return some html, as we are componentizing the header in future stories (refactor small and often!)","created_at":"2012-10-23T11:57:55Z","i_want_to":"have the darwin header served up on a page via Javascript","id":169803,"position":1,"so_i_can":null,"theme_id":44606,"unique_id":1,"updated_at":"2012-12-13T09:39:54Z","score":"5.0","acceptance_criteria":[{"criterion":"a blank page with the html for the header displayed","id":416104,"position":2,"story_id":169803},{"criterion":"the header html has been served by a simple jQuery plugin","id":428257,"position":3,"story_id":169803},{"criterion":"the javascript has retrieved the html from a public darwin api endpoint","id":428258,"position":4,"story_id":169803},{"criterion":"that the header is unmodified from the standard darwin header","id":428261,"position":5,"story_id":169803}]}
