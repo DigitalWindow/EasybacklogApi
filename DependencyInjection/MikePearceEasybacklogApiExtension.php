@@ -26,6 +26,7 @@ class  MikePearceEasybacklogApiExtension extends Extension
             $container, 
             new FileLocator(__DIR__.'/../Resources/config')
         );
+        
         $loader->load('services.yml');
     }
 }
