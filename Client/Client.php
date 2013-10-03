@@ -216,6 +216,9 @@ class Client {
         $stories = array();                          
         foreach ($this->getThemes(true) AS $theme) {
             if (is_array($theme['stories'])) {
+                foreach ($theme['stories'] as &$story) {
+                    $story['theme_unique_id'] = $theme['code'] . $story['unique_id'];
+                }
                 $stories = array_merge($stories, $theme['stories']);    
             }
         }
