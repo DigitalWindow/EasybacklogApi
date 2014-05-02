@@ -7,7 +7,7 @@ use Symfony\Component\ClassLoader\UniversalClassLoader;
 $loader = new UniversalClassLoader();
 $loader->registerNamespaces(array(
     'Guzzle' => $_SERVER['GUZZLE'] . '/src',
-    'Guzzle\\Tests' => $_SERVER['GUZZLE'] . '/tests',
+    'Guzzle\\tests' => $_SERVER['GUZZLE'] . '/tests',
 ));
 $loader->register();
 
@@ -20,7 +20,7 @@ $loader->register();
 // });
 
 \Guzzle\Tests\GuzzleTestCase::setMockBasePath(__DIR__ . DIRECTORY_SEPARATOR . 'mock');
-// \Guzzle\Tests\GuzzleTestCase::setServiceBuilder(\Guzzle\Service\ServiceBuilder::factory(array(
+// \Guzzle\tests\GuzzleTestCase::setServiceBuilder(\Guzzle\Service\ServiceBuilder::factory(array(
 //     'test.easybacklogapi' => array(
 //         'class' => 'Guzzle.Unfuddle.UnfuddleClient',
 //         'params' => array(

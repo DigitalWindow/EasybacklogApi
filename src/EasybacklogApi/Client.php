@@ -1,6 +1,6 @@
 <?php
 
-namespace MikePearce\EasybacklogApiBundle\Client;
+namespace Dwin\EasybacklogApi;
 
 class Client {
 
