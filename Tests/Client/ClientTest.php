@@ -5,17 +5,17 @@ use MikePearce\EasybacklogApiBundle\Client\Client;
 
 class ClientClientTest extends \Guzzle\Tests\GuzzleTestCase
 {
-    public $ebclient;
+    protected $ebClient;
     
-    public function setup() {    
-
+    protected $mockedGuzzle;
+    
+    public function setup() {
         // Guzzle
         $plugin = new \Guzzle\Plugin\Mock\MockPlugin();
         $plugin->addResponse(new \Guzzle\Http\Message\Response(200));
-        $this->mockedClient = new \Guzzle\Service\Client();
-        $this->mockedClient->addSubscriber($plugin);
+        $this->mockedGuzzle = new \Guzzle\Service\Client();
+        $this->mockedGuzzle->addSubscriber($plugin);
         $this->setMockBasePath(__DIR__ . DIRECTORY_SEPARATOR . '../TestData');
-         
     }
     
     /**
@@ -23,7 +23,7 @@ class ClientClientTest extends \Guzzle\Tests\GuzzleTestCase
      * @param string $response_file
      */
     public function getMocks($response_file = 'json_response') {
-        $this->setMockResponse($this->mockedClient, $response_file);
+        $this->setMockResponse($this->mockedGuzzle, $response_file);
         
         // Mock memcache
         $memcache = $this->getMock('memcache', array('get', 'set'));
@@ -34,9 +34,9 @@ class ClientClientTest extends \Guzzle\Tests\GuzzleTestCase
                  ->method('set')
                  ->will($this->returnValue(true));
 
-        $this->ebclient = new Client(
+        $this->ebClient = new Client(
             $memcache, 
-            $this->mockedClient, 
+            $this->mockedGuzzle, 
             'xxxxxxxxxx', 
             '123'
         );                
@@ -44,75 +44,75 @@ class ClientClientTest extends \Guzzle\Tests\GuzzleTestCase
 
     public function testSetBacklogReturnsObject() {   
         $this->getMocks();
-        $ebclient = $this->ebclient->setBacklog(array('0'))
+        $ebClient = $this->ebClient->setBacklog(array('0'))
                                    ->setBacklog('123');
-        $this->assertInstanceOf('MikePearce\EasybacklogApiBundle\Client\Client', $ebclient);
+        $this->assertInstanceOf('MikePearce\EasybacklogApiBundle\Client\Client', $ebClient);
     }
 
     public function testGetJsonFromApiReturnsJson() {
         $this->getMocks();
         $this->assertNotNull(
-            json_decode($this->ebclient->getJsonFromApi('http://www.google.com'))
+            json_decode($this->ebClient->getJsonFromApi('http://www.google.com'))
         );
     }
 
     public function testGetDataApiData() {
         $this->getMocks();
         $this->assertNotNull(
-            json_decode($this->ebclient->getJsonFromApi('http://www.google.com'))
+            json_decode($this->ebClient->getJsonFromApi('http://www.google.com'))
         );  
     }
     
     public function testGetThemes() {
         $this->getMocks('json_response_themes');
-        $this->ebclient->setBacklog(rand(1, 202323));
+        $this->ebClient->setBacklog(rand(1, 202323));
         $this->assertTrue(
-            is_array($this->ebclient->getThemes())
+            is_array($this->ebClient->getThemes())
         );
         $this->assertTrue(
-            is_array($this->ebclient->getThemes(true))
+            is_array($this->ebClient->getThemes(true))
         );
     }
     
     public function testGetSprints() {
         $this->getMocks('json_response_sprints');
-        $this->ebclient->setBacklog(rand(1, 202323));
+        $this->ebClient->setBacklog(rand(1, 202323));
         $this->assertTrue(
-            is_array($this->ebclient->getSprints())
+            is_array($this->ebClient->getSprints())
         );
         $this->assertTrue(
-            is_array($this->ebclient->getSprints(true))
+            is_array($this->ebClient->getSprints(true))
         );
     }    
     
     public function testGetVelocityStats() {
         $this->getMocks('json_response_stats');
-        $this->ebclient->setBacklog(rand(1, 202323));
+        $this->ebClient->setBacklog(rand(1, 202323));
         $this->assertTrue(
-            is_array($this->ebclient->getVelocityStats())
+            is_array($this->ebClient->getVelocityStats())
         );
         $this->assertArrayHasKey(
-            'velocity_stats', $this->ebclient->getVelocityStats()
+            'velocity_stats', $this->ebClient->getVelocityStats()
         );
         $this->assertArrayHasKey(
-            'velocity_complete', $this->ebclient->getVelocityStats()
+            'velocity_complete', $this->ebClient->getVelocityStats()
         );
     }   
     
     public function testGetStoriesFromTheme() {
         $this->getMocks('json_response_themes');
-        $this->ebclient->setBacklog(rand(1, 202323));
+        $this->ebClient->setBacklog(rand(1, 202323));
         $this->assertTrue(
-            is_array($this->ebclient->getStoriesFromTheme())
+            is_array($this->ebClient->getStoriesFromTheme())
         );
         
     }
     
     public function testGetStory() {
         $this->getMocks('json_response_themes');
-        $this->ebclient->setBacklog(rand(1, 202323));
+        $this->ebClient->setBacklog(rand(1, 202323));
         $this->assertTrue(
-            is_array($this->ebclient->getStory(rand(1, 202323)))
+            is_array($this->ebClient->getStory(rand(1, 202323)))
         );
         
     }    

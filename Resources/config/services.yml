@@ -1,4 +1,3 @@
-# guzzle.yml
 services:
     guzzle:
         class:      Guzzle\Service\Client
@@ -10,4 +9,4 @@ services:
     mikepearce_easybacklog_api:
         class:      MikePearce\EasybacklogApiBundle\Client\Client
         # The "@" injects the services from above
-        arguments:  ["@memcached", "@guzzle", "%easybacklog_api.api_key%", "%easybacklog_api.userid%"]
+        arguments:  ["@guzzle", "%easybacklog_api.api_key%", "%easybacklog_api.userid%", "@memcached"]

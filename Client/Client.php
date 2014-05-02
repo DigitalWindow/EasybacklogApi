@@ -4,90 +4,59 @@ namespace MikePearce\EasybacklogApiBundle\Client;
 
 class Client {
 
-    // HTTP Service
+    /**
+     * @var \Guzzle\Service\Client
+     */
     private $guzzle;
 
     /**
      * Your easybacklog.com API key
-     **/
-    private $api_key;
+     *
+     * @var string
+     */
+    private $apiKey;
 
     /**
-     * You user id
-     **/
-    private $userid;
-
-    /**
-     * Your easybacklog.com account Id
-     **/
-    public $accountid;
-
-    /**
-     * Your easybacklog.com backlogs
-     **/
-    public $backlogs;
+     * Your user id
+     *
+     * @var int
+     */
+    private $userId;
 
     /**
      * Memcached client
-     **/
+     *
+     * @var \Memcached
+     */
     private $memcached;
 
     /**
-     * Should we cache?
-     **/
-    private $cockblock;
-
-
-    /**
-     * @param $memcached memcache - DI injected
-     * @param $guzzle guzzle - DI injected $guzzle
-     * @param $api_key string - Your easybacklog.com API key
-     * @param $userid int - your user id
-     * @return void
-     **/
-    public function __construct($memcached, $guzzle, $api_key, $userid) {
+     * @param \Guzzle\Service\Client $guzzle
+     * @param $apiKey
+     * @param $userId
+     * @param \Memcached $memcached
+     */
+    public function __construct(\Guzzle\Service\Client $guzzle, $apiKey, $userId, \Memcached $memcached = null) {
         
-        $this->guzzle       = $guzzle;
-        $this->api_key      = $api_key;
-        $this->userid       = $userid;
-        $this->memcached    = $memcached;
-        $this->cockblock    = false;
+        $this->guzzle = $guzzle;
+        $this->apiKey = $apiKey;
+        $this->userId = $userId;
+        $this->memcached = $memcached;
     }
 
     /**
-     * @param $id int - Easy Backlog account ID
-     * @return $this object - returns itslf.
-     **/
-    public function setAccountId($id) {
-        $this->accountid = $id;
-        return $this;
-    }
-
-    /**
-     * @param $backlog int|array - Either a backlog ID, or an array of said.
-     * @return $this object - Return itself.
-     **/
-    public function setBacklog($backlog)
-    {
-        if (!is_array($backlog)) $backlog = array($backlog);
-
-        $this->backlogs = $backlog;
-
-        return $this;
-    }
-
-    /**
-     * @param $path string - the URL endpoint
-     * @return string - json
-     **/
+     * @param string $path
+     * @return string
+     */
     public function getJsonFromApi($path) {
-        
-        $json =  $this->guzzle->get($path)
-                              ->setAuth($this->userid, $this->api_key)
-                              ->send()
-                              ->getBody();  
+        $json = $this->guzzle->get($path)
+                             ->setAuth($this->userId, $this->apiKey)
+                             ->send()
+                             ->getBody();
 
-        $this->addDataToCache(md5($path), $json);
+        if ($this->memcached) {
+            $this->addDataToCache(md5($path), $json);
+        }
         return $json;
     }
 
@@ -97,30 +66,17 @@ class Client {
      * @return array - The Json as data
      **/
     private function getDataApiData($path = null) {
-
-        // No json, get some
-        if ($this->cockblock) {
-            $json = false;
-        }
-        else {
-            $json = $this->memcached->get(md5($path));    
-        }
-        
-        if ($json == false) {
-            $json =  $this->getJsonFromApi($path);
-        }
-        else {
-
+        if ($this->memcached && ($json = $this->memcached->get(md5($path)))) {
             $data = json_decode($json, true);
 
-            if (isset($data['date']) AND $data['date'] <= strtotime('-24 hours')) {
-                $json =  $this->getJsonFromApi($path);
+            if (isset($data['date']) && $data['date'] >= strtotime('-24 hours')) {
+                return $data;
             }
-    
         }
 
+        $json = $this->getJsonFromApi($path);
+
         return json_decode($json, true);
-        
     }
 
     /**
@@ -130,81 +86,160 @@ class Client {
      * @return void
      **/
     private function addDataToCache($key, $json) {
-
-        // If we're blocking
-        if ($this->cockblock) return;
+        // If we're not caching - should throw exception really
+        if (! $this->memcached) return;
 
         // First, add a timestamp
         $data = json_decode($json, true);
         $data['date'] = time();
         $json = json_encode($data);
 
-        // Then, add it to memcache
-        
+        // Then, add it to memcached
         $this->memcached->set($key, $json);
     }
 
     /**
-     * @param $include_associated_data boo - 
-     * @return array();
-     */
-    public function getThemes($include_associated_data = false) {
-        $path = 'api/backlogs/{backlogid}/themes.json';
-        if ($include_associated_data) $path .= '?include_associated_data=true';
-        return $this->loopBacklogs($path);
-        
-    }
-
-    /**
-     * @param $include_associated_data boolean - whether we include the stories
-     * @return array()
-     **/
-    public function getSprints($include_associated_data = false) {
-        $path = 'api/backlogs/{backlogid}/sprints.json';
-
-        if ($include_associated_data) $path .= '?include_associated_data=true';
-        return $this->loopBacklogs($path);
-    }
-
-    /**
-     * Get the backlog stats
+     * Get the backlogs for the given account
+     *
+     * @param int $accountId
+     * @param bool $includeArchived
      * @return array
-     **/
-    public function getBacklogStats() {
-        return $this->loopBacklogs('api/accounts/{accountid}/backlogs/{backlogid}/stats.json');
+     */
+    public function getBacklogs($accountId, $includeArchived = false)
+    {
+        $path = 'api/accounts/' . $accountId . '/backlogs.json';
+
+        if ($includeArchived) {
+            $path .= '?include_archived=true';
+        }
+
+        return $this->getDataApiData($path);
+    }
+
+    /**
+     * Fetch the backlog stats
+     *
+     * @param int $accountId
+     * @param int $backlogId
+     * @return array
+     */
+    public function getBacklogStats($accountId, $backlogId) {
+        $path = 'api/accounts/' . $accountId . '/backlogs/' . $backlogId .'/stats.json';
+
+        return $this->getDataApiData($path);
+    }
+
+    /**
+     * Get the Themes for a given backlog
+     *
+     * @param int $backlogId
+     * @param bool $includeStories
+     * @return array
+     */
+    public function getThemes($backlogId, $includeStories = false) {
+        $path = 'api/backlogs/' . $backlogId . '/themes.json';
+
+        if ($includeStories) {
+            $path .= '?include_associated_data=true';
+        }
+
+        return $this->getDataApiData($path);
+    }
+
+    /**
+     * Fetch the sprints for a given backlog
+     *
+     * @param int $backlogId
+     * @param bool $includeStories
+     * @return array
+     */
+    public function getSprints($backlogId, $includeStories = false)
+    {
+        $path = 'api/backlogs/' . $backlogId . '/sprints.json';
+
+        if ($includeStories) {
+          $path .= '?include_associated_data=true';
+        }
+
+        return $this->getDataApiData($path);
+    }
+
+    /**
+     * Fetch a single sprint
+     *
+     * @param int $backlogId
+     * @param int $sprintId
+     * @param bool $includeStories
+     * @return array
+     */
+    public function getSprint($backlogId, $sprintId, $includeStories = false)
+    {
+        $path = 'api/backlogs/' . $backlogId . '/sprints/' . $sprintId . '.json';
+
+        if ($includeStories) {
+            $path .= '?include_associated_data=true';
+        }
+
+        return $this->getDataApiData($path);
+    }
+
+    /**
+     * Fetch Sprint Stories (meta data about the story in a sprint) for a given sprint
+     *
+     * @param int $sprintId
+     * @return array
+     */
+    public function getSprintStories($sprintId)
+    {
+        $path = 'api/sprints/' . $sprintId . '/sprint-stories.json';
+
+        return $this->getDataApiData($path);
+    }
+
+    /**
+     * Fetch Sprint Story (meta data about the story in a sprint) for a given sprint and story
+     *
+     * @param int $storyId
+     * @param int $sprintId
+     * @return array
+     */
+    public function getSprintStory($sprintId, $storyId)
+    {
+        $path = 'api/sprints/' . $sprintId . '/sprint-stories/' . $storyId .'.json';
+
+        return $this->getDataApiData($path);
+    }
+
+    /**
+     * Get a single story
+     *
+     * @param int $storyId
+     * @param bool $includeAcceptanceCriteria
+     * @return array
+     */
+    public function getStory($storyId, $includeAcceptanceCriteria = false) {
+        $path = 'api/stories/'. $storyId .'.json';
+
+        if ($includeAcceptanceCriteria) {
+            $path .= '?include_associated_data=true';
+        }
+
+        return $this->getDataApiData($path);
     }
 
     /**
      * Extract just the velocity stuff from the backlog stats
+     *
+     * @param int $accountId
+     * @param int $backlogId
      * @return array
      **/
-    public function getVelocityStats() {
-        $stats = $this->getBacklogStats();
+    public function getVelocityStats($accountId, $backlogId) {
+        $stats = $this->getBacklogStats($accountId, $backlogId);
         return array(
             'velocity_stats'    => $stats['velocity_stats'], 
             'velocity_complete' => $stats['velocity_completed']
         );
-    }    
-
-    /**
-     * Loop through the array of backlogs
-     * @param $path string - The path to loop on
-     * @return array
-     **/
-    public function loopBacklogs($path) {
-
-        $data = array();
-        foreach($this->backlogs AS $backlog_id) {
-            $data = array_merge($data, $this->getDataApiData(
-                    str_replace(
-                        array('{backlogid}', '{accountid}'), 
-                        array($backlog_id, $this->accountid), 
-                        $path
-                   )
-                )
-               );
-        }
-        return $data;
     }
 
     /**
@@ -226,15 +261,4 @@ class Client {
 
         return $stories;
     }
-
-    /**
-     * Get a single story
-     * @param $story_id int
-     * @return array
-     **/
-    public function getStory($story_id) {
-        $path = 'api/stories/'. $story_id .'.json?include_associated_data=true';
-        return $this->loopBacklogs($path);
-    }
-    
 }
