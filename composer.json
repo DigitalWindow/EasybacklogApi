@@ -1,15 +1,18 @@
 {
-    "name": "mikepearce/easybacklogapi-bundle",
-    "description": "Symfony Easybacklog Api bundle",
+    "name": "dwin/easybacklogapi",
+    "description": "EasyBacklog Api Client",
     "authors": [
         {
             "name": "Alex Stansfield",
-            "email": "alex.stansfield@gmail.com"
+            "email": "alex.stansfield@affiliatewindow.com"
         }
     ],
     "require": {
         "php": ">=5.3.3",
         "guzzle/guzzle": ">=v3.0.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "4.0.*"
     },
     "autoload": {
         "psr-4": { "Dwin\\": "src/" }
